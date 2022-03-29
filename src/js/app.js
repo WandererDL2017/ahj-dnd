@@ -1,60 +1,61 @@
-import Taskbord from './Taskboard';
+import Taskboard from './Taskboard';
 import initData from './initData';
 import Storage from './Storage';
 
 const storage = new Storage();
-const taskboard = new Taskbord();
+const taskboard = new Taskboard();
 
-let dragged = null;
-let ghost = null;
-let widthEl = null;
-let heightEl = null;
-let topEl = null;
-let leftEl = null;
+let draggedEl = null;
+let ghostEl = null;
+let elWidth;
+let elHeight;
+let elTop;
+let elLeft;
+const elTasks = document.querySelector('#tasks');
 
-const tasks = document.querySelector('.tasks');
+function elDragDrop(e, element) {
+  const closest = document.elementFromPoint(e.clientX, e.clientY);
+  const { top } = closest.getBoundingClientRect();
 
-function dragAndDrop(item, element) {
-  const closestElement = document.elementFromPoint(item.clientX, item.clientY);
-  const { top } = closestElement.getBoundingClientRect();
-
-  if (closestElement.classList.contains('item-task')) {
-    if (item.pageY > windows.scrollY + top + closestElement.offsetHeight / 2) {
-      closestElement.closest('.item-tasks')
-      .insertBefore(element, closestElement.nextElementSibling);
+  if (closest.classList.contains('item-task')) {
+    if (e.pageY > window.scrollY + top + closest.offsetHeight / 2) {
+      closest
+        .closest('.item-tasks')
+        .insertBefore(element, closest.nextElementSibling);
     } else {
-      closestElement.closest('.item-tasks')
-      .insertBefore(element, closestElement);
+      closest.closest('.item-tasks').insertBefore(element, closest);
     }
   } else if (
-    closestElement.classList.contains('item-tasks')
-    && !closestElement.querySelector('.item-task')
+    closest.classList.contains('item-tasks')
+    && !closest.querySelector('.item-task')
   ) {
-    closestElement.append(element);
+    closest.append(element);
   }
 }
 
-function addObjectTasks() {
-  const toDo = document.querySelectorAll('.todo .item-tasks .item-task');
-  const inProgress = document.querySelectorAll(
-    '.in-progress .item-tasks .item-task'
+function objectTasks() {
+  const toDoTasks = document.querySelectorAll('#todo .item-tasks .item-task');
+  const inProgressTasks = document.querySelectorAll(
+    '#in-progress .item-tasks .item-task',
   );
-  const done = document.querySelectorAll('.done .item-tasks .item-task');
+  const doneTasks = document.querySelectorAll('#done .item-tasks .item-task');
+
   const objTasks = {
     todo: [],
     inProgress: [],
     done: [],
   };
 
-  for (const item of toDo) {
-    objTasks.todo.push(item.textContent.replace('X', ''));
+  for (const item of toDoTasks) {
+    objTasks.todo.push(item.textContent.replace(' ✖', ''));
   }
 
-  for (const item of inProgress) {
-    objTasks.inProgress.push(item.textContent.replace('X', ''));
+  for (const item of inProgressTasks) {
+    objTasks.inProgress.push(item.textContent.replace(' ✖', ''));
   }
-  for (const item of done) {
-    objTasks.done.push(item.textContent.replace('X', ''))
+
+  for (const item of doneTasks) {
+    objTasks.done.push(item.textContent.replace(' ✖', ''));
   }
   storage.save(objTasks);
 }
@@ -64,61 +65,102 @@ document.addEventListener('DOMContentLoaded', () => {
   if (storageData !== null) {
     taskboard.initTasks(storageData);
   } else {
-    taskboard.initTasks(init());
+    taskboard.initTasks(initData());
   }
 });
 
-tasks.addEventListener('mousedown', (e) => {
+// mousedown
+elTasks.addEventListener('mousedown', (e) => {
+  // открыть добавление новой задачи
   if (e.target.classList.contains('add-task')) {
-    e.target.parentNode.querySelector('.input-task')
-    .classList.remove('hidden');
-    
+    e.target.parentNode.querySelector('.input-task').classList.remove('hidden');
     e.target.classList.add('hidden');
-  } else if (e.target.classList.contains('b-cancel-task')) {
+  } else if (e.target.classList.contains('button-cancel-task')) { // отмена добавления задачи
     e.target
       .closest('.col-tasks')
       .querySelector('.add-task')
       .classList.remove('hidden');
     e.target.parentNode.classList.add('hidden');
-  } else if (e.target.classList.contains('b-add-task')) {
-    const addedEl = e.target
+  } else if (e.target.classList.contains('button-add-task')) { // добавить новую задачу
+    const elAddTask = e.target
       .closest('.col-tasks')
       .querySelector('.item-tasks');
-    const enteredEl = e.target.closest('.input-task').querySelector('.text-task');
-    taskboard.addTask(addedEl, enteredEl.value);
-    enteredEl.value = '';
-    e.target
-      .closest('.col-tasks')
-      .querySelector('.add-task')
-      .classList.remove('hidden');
-    e.target.parentNode.classList.add('hidden');
-    addObjectTasks();
-  } else if (e.target.classList.contains('del-task')) {
+    const elInput = e.target.closest('.input-task').querySelector('#text-task');
+    if (elInput.value !== '') {
+      taskboard.addTask(elAddTask, elInput.value);
+      elInput.value = '';
+      e.target
+        .closest('.col-tasks')
+        .querySelector('.add-task')
+        .classList.remove('hidden');
+      e.target.parentNode.classList.add('hidden');
+      objectTasks();
+    }
+  } else if (e.target.classList.contains('del-task')) { // удалить текущую задачу
     const itemDel = e.target.parentNode;
     itemDel.parentNode.removeChild(itemDel);
-    addObjectTasks();
+    objectTasks();
+
+    // начало перемещения задачи
   } else if (e.target.classList.contains('item-task')) {
     e.preventDefault();
     e.target.querySelector('.del-task').classList.add('hidden');
     const { top, left } = e.target.getBoundingClientRect();
-    dragged = e.target;
-    widthEl = dragged.offsetWidth;;
-    heightEl = dragged.offsetHeight;
-    topEl = e.pageX - left;
-    leftEl = e.pageY - top;
+    draggedEl = e.target;
+    elWidth = draggedEl.offsetWidth;
+    elHeight = draggedEl.offsetHeight;
+    elLeft = e.pageX - left;
+    elTop = e.pageY - top;
 
-    ghost = e.target.cloneNode(true);
-    ghost.innerHTML = '';
-    ghost.style.backgroundColor = 'gray';
-    ghost.style.width = `${elWidth}px`;
-    ghost.style.height = `${elHeight}px`;
-    
-    dragged.classList.add('dragged');
-    e.target.parentNode.insertBefore(ghost, e.target.nextElementSibling);
+    ghostEl = e.target.cloneNode(true);
+    ghostEl.innerHTML = '';
+    ghostEl.style.backgroundColor = '#808080';
+    ghostEl.style.width = `${elWidth}px`;
+    ghostEl.style.height = `${elHeight}px`;
 
-    dragged.style.left = `${e.pageX - leftEl}px`;
-    dragged.style.top = `${e.pageY - topEl}px`;
-    dragged.style.width = `${widthEl}px`;
-    dragged.style.height = `${heightEl}px`;
+    draggedEl.classList.add('dragged');
+    e.target.parentNode.insertBefore(ghostEl, e.target.nextElementSibling);
+
+    draggedEl.style.left = `${e.pageX - elLeft}px`;
+    draggedEl.style.top = `${e.pageY - elTop}px`;
+    draggedEl.style.width = `${elWidth}px`;
+    draggedEl.style.height = `${elHeight}px`;
+  }
+});
+
+// mouseleave
+elTasks.addEventListener('mouseleave', (e) => {
+  if (draggedEl) {
+    e.preventDefault();
+    ghostEl.parentNode.removeChild(ghostEl);
+    draggedEl.classList.remove('dragged');
+    draggedEl.style = '';
+    ghostEl = null;
+    draggedEl = null;
+  }
+});
+
+// mousemove
+elTasks.addEventListener('mousemove', (e) => {
+  if (draggedEl) {
+    e.preventDefault();
+    elDragDrop(e, ghostEl);
+    draggedEl.style.left = `${e.pageX - elLeft}px`;
+    draggedEl.style.top = `${e.pageY - elTop}px`;
+  }
+});
+
+// mouseup
+elTasks.addEventListener('mouseup', (e) => {
+  if (draggedEl) {
+    elDragDrop(e, draggedEl);
+
+    ghostEl.parentNode.removeChild(ghostEl);
+    draggedEl.classList.remove('dragged');
+    draggedEl.style = '';
+    ghostEl = null;
+    draggedEl = null;
+
+    objectTasks();
   }
 });

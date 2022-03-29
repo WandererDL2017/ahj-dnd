@@ -1,9 +1,10 @@
+/* eslint-disable class-methods-use-this */
 export default class Storage {
   save(data) {
-    localStorage.setItem('task', JSON.stringify(data));
+    localStorage.setItem('tasks', JSON.stringify(data));
   }
 
   load() {
-    localStorage.getItem('task');
+    return localStorage.getItem('tasks');
   }
 }

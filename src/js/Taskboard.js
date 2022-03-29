@@ -1,29 +1,30 @@
-export default class Taskbord {
+/* eslint-disable class-methods-use-this */
+export default class Taskboard {
   constructor() {
-    this.toDo = document.querySelector('.todo');
-    this.inProgress = document.querySelector('.in-progress');
-    this.done = document.querySelector('.done');
+    this.toDoTasks = document.querySelector('#todo .item-tasks');
+    this.inProgressTasks = document.querySelector('#in-progress .item-tasks');
+    this.doneTasks = document.querySelector('#done .item-tasks');
   }
 
-  addTask(parent, value) {
-    const task = document.createElement('div');
-    task.className = 'item-task';
-    task.innerHTML = `
+  addTask(parentEl, value) {
+    const itemTask = document.createElement('div');
+    itemTask.className = 'item-task';
+    itemTask.innerHTML = `
       ${value}
-      <div class="delete-task hidden">&#x2716;</div>
+      <div class="del-task hidden">&#x2716;</div>
     `;
-    parent.appendChild(task);
+    parentEl.appendChild(itemTask);
   }
 
-  addTasks(parent, arr) {
+  addArrTask(parentEl, arr) {
     for (let i = 0; i < arr.length; i += 1) {
-      this.addTask(parent, arr[i]);
+      this.addTask(parentEl, arr[i]);
     }
   }
 
   initTasks(initData) {
-    this.addTasks(this.toDo, initData.toDo);
-    this.addTasks(this.inProgress, initData.inProgress);
-    this.addTasks(this.done, initData.done);
+    this.addArrTask(this.toDoTasks, initData.todo);
+    this.addArrTask(this.inProgressTasks, initData.inProgress);
+    this.addArrTask(this.doneTasks, initData.done);
   }
 }
